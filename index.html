@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ÖestVèl Nav</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main>
+        <h1>Quick Navigator</h1>
+        <p id="location-status">Locating you...</p>
+
+        <form id="destination-form">
+            <label for="destination">Destination:</label>
+            <input type="text" id="destination" name="destination" placeholder="E.g., ÖestVèl Centrè" required>
+            <button type="submit">Get Directions</button>
+        </form>
+
+        <p class="note">This will open your phone's native map app for navigation.</p>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>
