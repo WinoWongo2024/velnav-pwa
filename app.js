@@ -5,15 +5,24 @@ let routingControl = null;
 const DEFAULT_LAT = 54.0084; // ÖestVèl Centrè (Harrogate)
 const DEFAULT_LON = -1.5422;
 
-// Get the status message element (dynamically inserted for placement)
+// Get the status message element (dynamically insert for consistent placement above map)
 const statusElement = document.createElement('p');
 statusElement.id = 'status-message';
-document.body.insertBefore(statusElement, document.getElementById('map'));
+// Check if a header exists before inserting the status message
+const header = document.querySelector('header');
+if (header) {
+    header.parentNode.insertBefore(statusElement, header.nextSibling);
+} else {
+    document.body.insertBefore(statusElement, document.getElementById('map'));
+}
+
 
 // 1. Initialize the map
 function initMap(lat, lon) {
     if (map) {
         map.setView([lat, lon], 13);
+        // If the map object exists, ensure it sees the current container size
+        map.invalidateSize(); 
         return;
     }
     
@@ -33,6 +42,14 @@ function initMap(lat, lon) {
         .bindPopup("Searching for your current position...").openPopup();
         
     statusElement.textContent = 'Map ready. Attempting to get precise location...';
+    
+    // 🌟 THE CRITICAL FIX: Ensure map renders correctly after DOM layout settles 🌟
+    setTimeout(function() {
+        if (map) {
+            map.invalidateSize();
+            console.log("Map size invalidated for proper rendering.");
+        }
+    }, 300); 
 }
 
 // 2. Aggressive Location Request with iOS Guidance
@@ -45,7 +62,7 @@ function getLocation() {
 
     statusElement.textContent = 'Requesting location permission...';
 
-    // Options for high accuracy and short timeout to trigger a quick response
+    // Options for high accuracy and short timeout
     const options = {
         enableHighAccuracy: true,
         timeout: 5000,
@@ -107,6 +124,7 @@ document.getElementById('get-directions').addEventListener('click', () => {
 
     const currentLatLng = userMarker ? userMarker.getLatLng() : null;
 
+    // Check if location is at the default or null
     if (!currentLatLng || (currentLatLng.lat === DEFAULT_LAT && currentLatLng.lng === DEFAULT_LON)) {
         alert("Cannot get directions. Please allow location access first (click 'Get Directions' to re-attempt).");
         getLocation(); // Re-trigger location attempt
@@ -137,6 +155,7 @@ document.getElementById('get-directions').addEventListener('click', () => {
                         L.Routing.waypoint(currentLatLng, 'Your Location'),
                         L.Routing.waypoint(destinationWaypoint, destinationInput)
                     ],
+                    // Using public OSRM service
                     router: L.Routing.osrmv1({
                         serviceUrl: 'https://router.project-osrm.org/route/v1'
                     }),
