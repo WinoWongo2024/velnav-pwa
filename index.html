@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ÖestVèl Navigator V2</title>
     
-    <script src="app.js"></script>
-</head>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="style.css">
+    
+    </head>
 <body>
     <header>
         <h1>ÖestVèl Navigator</h1>
     </header>
 
-    <div id="map"></div> 
+    <div id="map-container">
+        <iframe id="map-iframe" allow="geolocation" frameborder="0" style="border:0"></iframe>
+    </div>
 
     <div id="controls">
         <label for="destination">Destination (Address or Lat/Lon):</label>
@@ -22,11 +28,6 @@
         <div id="loading-bar"></div>
         <div id="loading-text">Initializing Navigator (0%)</div>
     </div>
-    
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-            integrity="sha256-20n6aRzI/ah2sS0Itg9E0+aP5N12J3R2yP5F9e0m/k4="
-            crossorigin=""></script>
-    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     
     <script src="app.js"></script>
 </body>
