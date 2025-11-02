@@ -4,7 +4,12 @@ body {
     font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
-    height: 100vh; /* CRITICAL for Flexbox height */
+    
+    /* CRITICAL FIXES FOR MOBILE VIEWPORT HEIGHT */
+    height: 100vh; 
+    min-height: 100vh;
+    min-height: -webkit-fill-available; /* iOS/Webkit specific fill */
+    
     overflow: hidden; 
 }
 
@@ -28,8 +33,12 @@ header {
 }
 
 #map {
-    flex-grow: 1; /* CRITICAL: Map takes up all remaining vertical space */
+    flex-grow: 1; 
     width: 100%;
+    
+    /* CRITICAL FIX: Ensure a minimum height is visible even if flex calculations fail */
+    min-height: 300px; 
+    
     z-index: 1;
 }
 
