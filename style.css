@@ -69,3 +69,42 @@ header {
     max-height: 100%; /* Will now flex within the map container */
     overflow-y: auto;
 }
+
+/* --- Loading Bar Styles --- */
+#loading-overlay {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 35px; /* Height of the overlay */
+    background-color: #f1f1f1;
+    z-index: 2000; /* Ensure it's above everything */
+    overflow: hidden;
+    transition: transform 0.3s ease-in-out;
+}
+
+#loading-bar {
+    height: 100%;
+    width: 0%; /* Starts at 0% */
+    background-color: #ffcc00; /* Yellow/Gold Progress Bar */
+    transition: width 0.5s ease-out; /* Smooth width transition */
+}
+
+#loading-text {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    line-height: 35px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    z-index: 2001;
+}
+
+/* Class to hide the overlay after loading */
+.loaded #loading-overlay {
+    transform: translateY(35px); /* Slides the bar down and off-screen */
+}
+
