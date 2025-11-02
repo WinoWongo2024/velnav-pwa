@@ -1,17 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ÖestVèl Quick Nav</title>
+    <script src="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.js"></script>
     
-    <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="style.css">
-    
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-          integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-          crossorigin=""/>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@3.2.12/dist/leaflet-routing-machine.css" />
+    <script src="app.js"></script>
 </head>
 <body>
     <header>
@@ -26,6 +18,11 @@
         <button id="get-directions">Get Directions</button>
     </div>
 
+    <div id="loading-overlay">
+        <div id="loading-bar"></div>
+        <div id="loading-text">Initializing Navigator (0%)</div>
+    </div>
+    
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
             integrity="sha256-20n6aRzI/ah2sS0Itg9E0+aP5N12J3R2yP5F9e0m/k4="
             crossorigin=""></script>
