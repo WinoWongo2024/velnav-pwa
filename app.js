@@ -1,14 +1,13 @@
 // Global variables
-let map;
+let map = null; // Initialize map as null
 let userMarker;
 let routingControl = null;
 const DEFAULT_LAT = 54.0084; // ÖestVèl Centrè (Harrogate)
 const DEFAULT_LON = -1.5422;
 
-// Get the status message element (dynamically insert for consistent placement above map)
+// Get the status message element
 const statusElement = document.createElement('p');
 statusElement.id = 'status-message';
-// Insert status message after the header
 const header = document.querySelector('header');
 if (header) {
     header.parentNode.insertBefore(statusElement, header.nextSibling);
@@ -17,58 +16,53 @@ if (header) {
 }
 
 
-// 1. Initialize the map (Enhanced with Robust Invalidaton)
+// 1. Map Initialization (Delayed until Location is resolved)
 function initMap(lat, lon) {
     if (map) {
         map.setView([lat, lon], 13);
-        // CRITICAL: Invalidate size immediately if map object already exists
         map.invalidateSize(); 
         return;
     }
     
-    statusElement.textContent = 'Map loading...';
+    statusElement.textContent = 'Map tiles loading...';
     
-    // Create the map instance
+    // 🌟 New Guarantee: Map initialized only AFTER location is known 🌟
     map = L.map('map').setView([lat, lon], 13);
 
-    // Add the OpenStreetMap tiles
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
     
-    // Add a marker for the initial location
     userMarker = L.marker([lat, lon], {title: "Your Location"}).addTo(map)
-        .bindPopup("Searching for your current position...").openPopup();
+        .bindPopup("Your Current Position").openPopup();
         
-    statusElement.textContent = 'Map ready. Attempting to get precise location...';
+    statusElement.textContent = `Map centered on: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
     
-    // 🌟 ROBUST FIX: Use Leaflet's 'whenReady' event for the most reliable redraw. 🌟
+    // 🌟 Use whenReady/setTimeout for guaranteed redraw 🌟
     map.whenReady(function() {
-        // Use a short delay even with whenReady, just to be safe on PWAs
         setTimeout(function() {
             if (map) {
                 map.invalidateSize({pan: false}); 
-                console.log("Map size successfully invalidated via whenReady/setTimeout.");
+                console.log("Map size successfully invalidated after initialization.");
             }
         }, 100); 
     });
 }
 
-// 2. Aggressive Location Request with iOS Guidance
+// 2. Aggressive Location Request
 function getLocation() {
     if (!navigator.geolocation) {
-        statusElement.textContent = 'Error: Geolocation is not supported by this device.';
+        statusElement.textContent = 'Error: Geolocation not supported. Defaulting to ÖestVèl Centrè.';
         initMap(DEFAULT_LAT, DEFAULT_LON);
         return;
     }
 
     statusElement.textContent = 'Requesting location permission...';
 
-    // Options for high accuracy and short timeout
     const options = {
         enableHighAccuracy: true,
-        timeout: 5000,
+        timeout: 7000, // Increased timeout to 7 seconds
         maximumAge: 0
     };
     
@@ -78,47 +72,42 @@ function getLocation() {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             
-            initMap(lat, lon);
-            userMarker.setLatLng([lat, lon]).bindPopup("Your Current Location").openPopup();
+            // 🌟 Initialize Map Here! 🌟
+            initMap(lat, lon); 
             
+            userMarker.setLatLng([lat, lon]);
             statusElement.textContent = `Location found! You are at: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-            map.setView([lat, lon], 16); // Zoom in on the user
+            map.setView([lat, lon], 16);
         },
         // ERROR: Position Failed
         (error) => {
-            console.error("Geolocation Error:", error);
-
             if (error.code === error.PERMISSION_DENIED) {
-                // User denied permission (Error Code 1) - Crucial iOS instruction
-                const message = `🔴 **Permission Denied!**\n\nTo use navigation, you must allow location access.\n\n` + 
-                                `**If you are on an iPhone:**\n` +
-                                `1. Make sure the app is **Added to your Home Screen**.\n` +
-                                `2. Go to **Settings** -> **Privacy & Security** -> **Location Services** -> **Safari Websites** and ensure it's set to **'While Using the App'**.`;
-                
-                // Display instructions clearly on screen and via alert
+                const message = `🔴 **Permission Denied!** To use navigation, you must allow location access. Check iOS Settings for Safari Location Services.`;
                 statusElement.innerHTML = message.replace(/\n/g, '<br>'); 
                 alert(message.replace(/<br>/g, '\n'));
                 
-                // Initialize map with default location if not already done
-                initMap(DEFAULT_LAT, DEFAULT_LON);
-                
             } else if (error.code === error.TIMEOUT) {
-                // Request timed out (Error Code 3) - Try again aggressively
                 statusElement.textContent = 'Location timed out. Trying again...';
-                getLocation(); // Recursive call to try again
-                
+                getLocation(); // Recursive call
+                return; // Stop execution here to prevent map init below
             } else {
-                // Other errors (e.g., POSITION_UNAVAILABLE - Error Code 2)
-                statusElement.textContent = 'Location unavailable. Check your device settings and internet connection.';
-                initMap(DEFAULT_LAT, DEFAULT_LON);
+                statusElement.textContent = 'Location unavailable. Defaulting to ÖestVèl Centrè.';
             }
+            // 🌟 Initialize Map Here on Failure! 🌟
+            initMap(DEFAULT_LAT, DEFAULT_LON); 
         },
         options
     );
 }
 
-// 3. Handle Routing
+// 3. Handle Routing (Same logic, but ensures map redraw)
 document.getElementById('get-directions').addEventListener('click', () => {
+    // Ensure map exists before continuing
+    if (!map) {
+        alert("Map is not yet initialized. Please wait a moment.");
+        return;
+    }
+    
     const destinationInput = document.getElementById('destination').value.trim();
     if (!destinationInput) {
         alert("Please enter a destination.");
@@ -126,20 +115,16 @@ document.getElementById('get-directions').addEventListener('click', () => {
     }
 
     const currentLatLng = userMarker ? userMarker.getLatLng() : null;
-
-    // Check if location is at the default or null
     if (!currentLatLng || (currentLatLng.lat === DEFAULT_LAT && currentLatLng.lng === DEFAULT_LON)) {
         alert("Cannot get directions. Please allow location access first (click 'Get Directions' to re-attempt).");
-        getLocation(); // Re-trigger location attempt
+        getLocation(); 
         return;
     }
 
-    // FINAL SAFTEY CHECK: Force map redraw on interaction
-    if (map) {
-        map.invalidateSize();
-    }
+    // Force map redraw on interaction as a final safety check
+    map.invalidateSize(); 
 
-    // Remove previous route if it exists
+    // Remove previous route
     if (routingControl) {
         map.removeControl(routingControl);
         routingControl = null;
@@ -147,7 +132,7 @@ document.getElementById('get-directions').addEventListener('click', () => {
     
     statusElement.textContent = `Calculating route to: ${destinationInput}...`;
 
-    // Use Nominatim (OSM's Geocoder) to convert address to coordinates
+    // Routing logic (unchanged)
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destinationInput)}`)
         .then(response => response.json())
         .then(data => {
@@ -155,34 +140,27 @@ document.getElementById('get-directions').addEventListener('click', () => {
                 const destLat = parseFloat(data[0].lat);
                 const destLon = parseFloat(data[0].lon);
                 
-                const destinationWaypoint = L.latLng(destLat, destLon);
-
-                // Create the routing control (Leaflet Routing Machine with OSRM)
                 routingControl = L.Routing.control({
                     waypoints: [
                         L.Routing.waypoint(currentLatLng, 'Your Location'),
-                        L.Routing.waypoint(destinationWaypoint, destinationInput)
+                        L.Routing.waypoint(L.latLng(destLat, destLon), destinationInput)
                     ],
-                    // Using public OSRM service
-                    router: L.Routing.osrmv1({
-                        serviceUrl: 'https://router.project-osrm.org/route/v1'
-                    }),
+                    router: L.Routing.osrmv1({ serviceUrl: 'https://router.project-osrm.org/route/v1' }),
                     routeWhileDragging: false,
-                    show: true, // Show the directions panel
+                    show: true,
                     fitSelectedRoutes: 'smart'
                 }).addTo(map);
                 
                 statusElement.textContent = 'Route calculated! See instructions on the left.';
-
             } else {
-                statusElement.textContent = `Could not find coordinates for: ${destinationInput}. Please try a different address.`;
+                statusElement.textContent = `Could not find coordinates for: ${destinationInput}.`;
             }
         })
         .catch(error => {
             console.error("Geocoding or Routing Error:", error);
-            statusElement.textContent = "An error occurred during routing. Check console for details.";
+            statusElement.textContent = "An error occurred during routing.";
         });
 });
 
-// Start the location process when the app loads
+// 🌟 Start the location process (This is the only function call on page load) 🌟
 getLocation();
