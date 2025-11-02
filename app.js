@@ -8,7 +8,7 @@ const DEFAULT_LON = -1.5422;
 // Get the status message element (dynamically insert for consistent placement above map)
 const statusElement = document.createElement('p');
 statusElement.id = 'status-message';
-// Check if a header exists before inserting the status message
+// Insert status message after the header
 const header = document.querySelector('header');
 if (header) {
     header.parentNode.insertBefore(statusElement, header.nextSibling);
@@ -17,11 +17,11 @@ if (header) {
 }
 
 
-// 1. Initialize the map
+// 1. Initialize the map (Enhanced with Robust Invalidaton)
 function initMap(lat, lon) {
     if (map) {
         map.setView([lat, lon], 13);
-        // If the map object exists, ensure it sees the current container size
+        // CRITICAL: Invalidate size immediately if map object already exists
         map.invalidateSize(); 
         return;
     }
@@ -43,13 +43,16 @@ function initMap(lat, lon) {
         
     statusElement.textContent = 'Map ready. Attempting to get precise location...';
     
-    // 🌟 THE CRITICAL FIX: Ensure map renders correctly after DOM layout settles 🌟
-    setTimeout(function() {
-        if (map) {
-            map.invalidateSize();
-            console.log("Map size invalidated for proper rendering.");
-        }
-    }, 300); 
+    // 🌟 ROBUST FIX: Use Leaflet's 'whenReady' event for the most reliable redraw. 🌟
+    map.whenReady(function() {
+        // Use a short delay even with whenReady, just to be safe on PWAs
+        setTimeout(function() {
+            if (map) {
+                map.invalidateSize({pan: false}); 
+                console.log("Map size successfully invalidated via whenReady/setTimeout.");
+            }
+        }, 100); 
+    });
 }
 
 // 2. Aggressive Location Request with iOS Guidance
@@ -129,6 +132,11 @@ document.getElementById('get-directions').addEventListener('click', () => {
         alert("Cannot get directions. Please allow location access first (click 'Get Directions' to re-attempt).");
         getLocation(); // Re-trigger location attempt
         return;
+    }
+
+    // FINAL SAFTEY CHECK: Force map redraw on interaction
+    if (map) {
+        map.invalidateSize();
     }
 
     // Remove previous route if it exists
