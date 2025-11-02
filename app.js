@@ -1,5 +1,5 @@
 // Global variables
-let map = null; // Initialize map as null
+let map = null; 
 let userMarker;
 let routingControl = null;
 const DEFAULT_LAT = 54.0084; // ÖestVèl Centrè (Harrogate)
@@ -10,59 +10,97 @@ const statusElement = document.createElement('p');
 statusElement.id = 'status-message';
 const header = document.querySelector('header');
 if (header) {
+    // Insert status message after the header
     header.parentNode.insertBefore(statusElement, header.nextSibling);
 } else {
     document.body.insertBefore(statusElement, document.getElementById('map'));
 }
 
+// 🌟 NEW: Loading Bar Control Function 🌟
+function updateLoadingStatus(percent, text) {
+    const loadingBar = document.getElementById('loading-bar');
+    const loadingText = document.getElementById('loading-text');
+    const body = document.body;
+
+    if (!loadingBar || !loadingText) return; // Safety check
+
+    if (percent >= 100) {
+        // Complete loading
+        loadingBar.style.width = '100%';
+        loadingText.textContent = 'Loading Complete!';
+        
+        // Use a short delay before sliding the bar away
+        setTimeout(() => {
+            body.classList.add('loaded'); // Trigger CSS to slide the bar off-screen
+        }, 300); 
+
+    } else {
+        // Update progress
+        body.classList.remove('loaded');
+        loadingBar.style.width = `${percent}%`;
+        loadingText.textContent = `${text} (${percent}%)`;
+    }
+}
 
 // 1. Map Initialization (Delayed until Location is resolved)
 function initMap(lat, lon) {
     if (map) {
         map.setView([lat, lon], 13);
         map.invalidateSize(); 
+        updateLoadingStatus(100, 'Ready');
         return;
     }
     
     statusElement.textContent = 'Map tiles loading...';
-    
-    // 🌟 New Guarantee: Map initialized only AFTER location is known 🌟
-    map = L.map('map').setView([lat, lon], 13);
+    updateLoadingStatus(60, 'Initializing Leaflet');
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    // Initialize Map Here! (Without the tile layer initially)
+    map = L.map('map', {
+        maxBoundsViscosity: 1.0, 
+        inertia: false 
+    }).setView([lat, lon], 13);
     
-    userMarker = L.marker([lat, lon], {title: "Your Location"}).addTo(map)
-        .bindPopup("Your Current Position").openPopup();
+    // --- CRITICAL FIXES ---
+    // 1. Invalidate size immediately after creation
+    map.invalidateSize(true); 
+    
+    // 2. Delay the tile load to guarantee the DOM is settled
+    setTimeout(function() {
+        // Add the OpenStreetMap tiles now
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
         
-    statusElement.textContent = `Map centered on: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-    
-    // 🌟 Use whenReady/setTimeout for guaranteed redraw 🌟
-    map.whenReady(function() {
-        setTimeout(function() {
-            if (map) {
-                map.invalidateSize({pan: false}); 
-                console.log("Map size successfully invalidated after initialization.");
-            }
-        }, 100); 
-    });
+        updateLoadingStatus(80, 'Loading Map Tiles');
+
+        // 3. One final redraw guarantee after tiles are added
+        map.invalidateSize(true);
+        statusElement.textContent = `Map centered on: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        
+        userMarker = L.marker([lat, lon], {title: "Your Location"}).addTo(map)
+            .bindPopup("Your Current Position").openPopup();
+        
+        updateLoadingStatus(100, 'Navigator Ready');
+        
+    }, 500); // 500ms delay to give the browser time to settle
 }
 
 // 2. Aggressive Location Request
 function getLocation() {
     if (!navigator.geolocation) {
         statusElement.textContent = 'Error: Geolocation not supported. Defaulting to ÖestVèl Centrè.';
+        updateLoadingStatus(100, 'Geolocation failed. Map loaded.');
         initMap(DEFAULT_LAT, DEFAULT_LON);
         return;
     }
 
     statusElement.textContent = 'Requesting location permission...';
+    updateLoadingStatus(10, 'Awaiting Location Permission'); // 10%
 
     const options = {
         enableHighAccuracy: true,
-        timeout: 7000, // Increased timeout to 7 seconds
+        timeout: 7000, 
         maximumAge: 0
     };
     
@@ -72,15 +110,16 @@ function getLocation() {
             const lat = position.coords.latitude;
             const lon = position.coords.longitude;
             
-            // 🌟 Initialize Map Here! 🌟
+            updateLoadingStatus(40, 'Location Found. Initializing Map');
             initMap(lat, lon); 
             
-            userMarker.setLatLng([lat, lon]);
-            statusElement.textContent = `Location found! You are at: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+            // Marker update happens inside initMap's timeout
             map.setView([lat, lon], 16);
         },
         // ERROR: Position Failed
         (error) => {
+            console.error("Geolocation Error:", error);
+
             if (error.code === error.PERMISSION_DENIED) {
                 const message = `🔴 **Permission Denied!** To use navigation, you must allow location access. Check iOS Settings for Safari Location Services.`;
                 statusElement.innerHTML = message.replace(/\n/g, '<br>'); 
@@ -89,35 +128,32 @@ function getLocation() {
             } else if (error.code === error.TIMEOUT) {
                 statusElement.textContent = 'Location timed out. Trying again...';
                 getLocation(); // Recursive call
-                return; // Stop execution here to prevent map init below
+                return; 
             } else {
                 statusElement.textContent = 'Location unavailable. Defaulting to ÖestVèl Centrè.';
             }
-            // 🌟 Initialize Map Here on Failure! 🌟
+            // Initialize Map on Failure
+            updateLoadingStatus(100, 'Map Initialized (Default Location)');
             initMap(DEFAULT_LAT, DEFAULT_LON); 
         },
         options
     );
 }
 
-// 3. Handle Routing (Same logic, but ensures map redraw)
+// 3. Handle Routing
 document.getElementById('get-directions').addEventListener('click', () => {
-    // Ensure map exists before continuing
-    if (!map) {
-        alert("Map is not yet initialized. Please wait a moment.");
+    
+    // Check if the map object exists AND if the userMarker was successfully placed
+    // Check if the userMarker is null or the marker is at the default location
+    if (!map || !userMarker || (userMarker.getLatLng().lat === DEFAULT_LAT && userMarker.getLatLng().lng === DEFAULT_LON)) {
+        alert("Cannot get directions. Please allow location access first. Navigator will re-attempt to find your location.");
+        getLocation(); 
         return;
     }
     
     const destinationInput = document.getElementById('destination').value.trim();
     if (!destinationInput) {
         alert("Please enter a destination.");
-        return;
-    }
-
-    const currentLatLng = userMarker ? userMarker.getLatLng() : null;
-    if (!currentLatLng || (currentLatLng.lat === DEFAULT_LAT && currentLatLng.lng === DEFAULT_LON)) {
-        alert("Cannot get directions. Please allow location access first (click 'Get Directions' to re-attempt).");
-        getLocation(); 
         return;
     }
 
@@ -132,7 +168,9 @@ document.getElementById('get-directions').addEventListener('click', () => {
     
     statusElement.textContent = `Calculating route to: ${destinationInput}...`;
 
-    // Routing logic (unchanged)
+    const currentLatLng = userMarker.getLatLng();
+
+    // Routing logic
     fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(destinationInput)}`)
         .then(response => response.json())
         .then(data => {
@@ -162,5 +200,5 @@ document.getElementById('get-directions').addEventListener('click', () => {
         });
 });
 
-// 🌟 Start the location process (This is the only function call on page load) 🌟
+// 🌟 Start the location process 🌟
 getLocation();
