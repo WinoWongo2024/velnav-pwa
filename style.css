@@ -2,48 +2,54 @@ body {
     margin: 0;
     padding: 0;
     font-family: Arial, sans-serif;
-    display: flex;
-    flex-direction: column;
-    
-    /* CRITICAL FIXES FOR MOBILE VIEWPORT HEIGHT */
-    height: 100vh; 
+    height: 100vh;
     min-height: 100vh;
-    min-height: -webkit-fill-available; /* iOS/Webkit specific fill */
-    
+    min-height: -webkit-fill-available; /* Ensure full viewport height on iOS */
     overflow: hidden; 
 }
 
 header {
-    background-color: #006400; /* Dark Green - Royal ÖestVèl Colour */
+    background-color: #006400; 
     color: white;
     padding: 10px;
     text-align: center;
+    position: fixed; /* Fix header position */
+    top: 0;
+    left: 0;
+    right: 0;
     z-index: 1000;
+    height: 40px; /* Define a fixed header height */
 }
 
 #status-message {
     padding: 10px;
-    background-color: #ffffc0; /* Light yellow for visibility */
+    background-color: #ffffc0; 
     color: #333;
     text-align: center;
     font-weight: bold;
     margin: 0;
     border-bottom: 1px solid #ddd;
+    position: fixed; /* Fix status position */
+    top: 60px; /* Position right below the header (40px height + 10px padding * 2 = 60px) */
+    left: 0;
+    right: 0;
     z-index: 999;
+    height: 30px; /* Define fixed status height */
+    line-height: 30px;
 }
 
 #map {
-    flex-grow: 1; 
+    position: absolute; /* ⬅️ CRITICAL CHANGE: Absolute positioning */
+    top: 90px; /* Below the status message */
+    bottom: 140px; /* Above the controls */
+    left: 0;
+    right: 0;
     width: 100%;
-    
-    /* CRITICAL FIX: Ensure a minimum height is visible even if flex calculations fail */
-    min-height: 300px; 
-    
     z-index: 1;
 }
 
 #controls {
-    position: absolute;
+    position: fixed; /* Fix controls position */
     bottom: 0;
     left: 0;
     right: 0;
@@ -52,31 +58,7 @@ header {
     border-top: 1px solid #ccc;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
     z-index: 1000; 
-}
-
-#controls label,
-#controls input,
-#controls button {
-    display: block;
-    width: 100%;
-    margin-bottom: 10px;
-    box-sizing: border-box;
-}
-
-#controls input {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-}
-
-#controls button {
-    padding: 10px;
-    background-color: #008000; 
-    color: white;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
+    height: 100px; /* Define fixed control height */
 }
 
 /* Ensure routing container is styled cleanly */
@@ -84,6 +66,6 @@ header {
     background: rgba(255, 255, 255, 0.9);
     padding: 10px;
     border-radius: 5px;
-    max-height: 50%;
+    max-height: 100%; /* Will now flex within the map container */
     overflow-y: auto;
 }
