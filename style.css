@@ -4,20 +4,31 @@ body {
     font-family: Arial, sans-serif;
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    overflow: hidden; /* Prevent body scroll */
+    height: 100vh; /* CRITICAL for Flexbox height */
+    overflow: hidden; 
 }
 
 header {
-    background-color: #006400; /* Dark Green */
+    background-color: #006400; /* Dark Green - Royal ÖestVèl Colour */
     color: white;
     padding: 10px;
     text-align: center;
-    z-index: 1000; /* Ensure header is above map */
+    z-index: 1000;
+}
+
+#status-message {
+    padding: 10px;
+    background-color: #ffffc0; /* Light yellow for visibility */
+    color: #333;
+    text-align: center;
+    font-weight: bold;
+    margin: 0;
+    border-bottom: 1px solid #ddd;
+    z-index: 999;
 }
 
 #map {
-    flex-grow: 1; /* Map takes up all available vertical space */
+    flex-grow: 1; /* CRITICAL: Map takes up all remaining vertical space */
     width: 100%;
     z-index: 1;
 }
@@ -31,7 +42,7 @@ header {
     background-color: rgba(255, 255, 255, 0.95);
     border-top: 1px solid #ccc;
     box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* Ensure controls are above map */
+    z-index: 1000; 
 }
 
 #controls label,
@@ -51,7 +62,7 @@ header {
 
 #controls button {
     padding: 10px;
-    background-color: #008000; /* Standard Green */
+    background-color: #008000; 
     color: white;
     border: none;
     border-radius: 5px;
@@ -59,7 +70,7 @@ header {
     font-weight: bold;
 }
 
-/* Style for the routing control panel from Leaflet Routing Machine */
+/* Ensure routing container is styled cleanly */
 .leaflet-routing-container {
     background: rgba(255, 255, 255, 0.9);
     padding: 10px;
